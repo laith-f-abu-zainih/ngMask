@@ -18,7 +18,7 @@
           var timeout;
           var promise;
 
-          function setSelectionRange(selectionStart){
+          function setSelectionRange($element, selectionStart){
             if (typeof selectionStart !== 'number') {
               return;
             }
@@ -111,7 +111,7 @@
 
                         var wrongPosition = maskService.getFirstWrongPosition(viewValueWithDivisors);
                         if (angular.isDefined(wrongPosition)) {
-                          setSelectionRange(wrongPosition);
+                          setSelectionRange($element, wrongPosition);
                         }
                       } else if (options.restrict === 'reject' && !validCurrentPosition) {
                         viewValue = maskService.removeWrongPositions(viewValueWithDivisors);
@@ -138,8 +138,10 @@
 
                     // Update view and model values
                     if(value !== viewValueWithDivisors){
-                      controller.$setViewValue(angular.copy(viewValueWithDivisors), 'input');
+                      controller.$viewValue = angular.copy(viewValueWithDivisors);
                       controller.$render();
+                      // Not using $setViewValue so we don't clobber the model value and dirty the form
+                      // without any kind of user interaction.
                     }
                   } catch (e) {
                     $log.error('[mask - parseViewValue]');
@@ -167,11 +169,9 @@
                 });
 
                 // Register the watch to observe remote loading or promised data
-                // Deregister calling returned function
-                var watcher = $scope.$watch($attrs.ngModel, function (newValue, oldValue) {
+                $scope.$watch($attrs.ngModel, function (newValue, oldValue) {
                   if (angular.isDefined(newValue)) {
                     parseViewValue(newValue);
-                    watcher();
                   }
                 });
 
@@ -180,8 +180,10 @@
                 // but before the browser renders
                 if(options.value) {
                   $scope.$evalAsync(function($scope) {
-                    controller.$setViewValue(angular.copy(options.value), 'input');
+                    controller.$viewValue = angular.copy(options.value);
                     controller.$render();
+                    // Not using $setViewValue so we don't clobber the model value and dirty the form
+                    // without any kind of user interaction.
                   });
                 }
               });
